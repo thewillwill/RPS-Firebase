@@ -1,2 +1,2 @@
 # RPS-Firebase
-Rock Paper Scissors multiplayer using firebase
+Rock Paper Scissors multiplayer game using firebase
