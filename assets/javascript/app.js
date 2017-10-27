@@ -45,22 +45,22 @@ var numPlayers;
 var playerNumber = -1; //store the player number to check if they are in the game
 var gameStarted = false;;
 var playerID;
+var turn = 0;
 
-var rpsChoices = "<ul><li>Rock</li><li>Paper</li><li>Scissors</li></ul>";
+var playerOneButtons = "<button class='player1-choice' data-choice='rock'>Rock</button><button class='player1-choice' data-choice='paper'>Paper</button><button class='player1-choice' data-choice='scissors'>Scissors</button>";
 
-
-
-// ------------------------------------
-// Game Data - Changes
-// ------------------------------------
-
-var playersRef = database.ref("/players");
-var gameDataRef = database.ref("/gameData");
 
 // ------------------------------------
-// Things to Initialise when Page loads
+// Things to do when Page loads
 // ------------------------------------
 $("#waiting").hide();
+
+
+
+// ------------------------------------
+// Player Data - Changes
+// ------------------------------------
+var playersRef = database.ref("/players");
 
 // At page load and subsequent value changes, get a snapshot of the players data.
 playersRef.orderByKey().on("value", function(snapshot) {
@@ -83,13 +83,12 @@ playersRef.orderByKey().on("value", function(snapshot) {
 
         if (numPlayers === 0) {
             //start or restart the game
-            restartGame();
+            restartGame(false);
         } else if (numPlayers === 1 && !gameStarted) {
 
             for (var key in snapshot.val()) {
                 console.log("snapshot key" + key);
                 firstPlayerName = snapshot.val()[key].name;
-
             }
             // var firstPlayerName = (snapshot.child("1").val().name);
             // // console.log('firstPlayer', firstPlayerName);
@@ -102,22 +101,14 @@ playersRef.orderByKey().on("value", function(snapshot) {
                     playerID = key;
                     console.log('playerID', playerID)
 
+                    //store player one ID in gameData
+                    database.ref("/gameData/playerOneID").set(key);
+
                 }
             }
 
-        //There is 2 players, so the game has started or can start
-        } else if (numPlayers === 2) {
-
-            gameStarted = database.ref("/gameData/gameStarted").val;
-            console.log('gameStarted', gameStarted);
-            //if the game has started
-            if (gameStarted) {
-                //if this user is player 1
-                if (playerNumber === 1) {
-                    //display the buttons to choose Rock, Paper or Scissors
-                    $("#player1-choices").innerHTML(rpsChoices);
-                }
-            }
+            //There is 2 players, so the game has started or can start
+        } else if (numPlayers === 2 && !gameStarted) {
 
             for (var key in snapshot.val()) {
                 console.log("snapshot key" + key);
@@ -134,28 +125,25 @@ playersRef.orderByKey().on("value", function(snapshot) {
                 for (var key in snapshot.val()) {
                     playerID = key;
                     console.log('playerID', playerID)
+                    //store player one ID in gameData
+                    database.ref("/gameData/playerTwoID").set(key);
                 }
             }
             //check if user is NOT a player in the game 
             if (playerNumber === -1) {
-                console.log('renderGameInProgress')
+                console.log('renderGameStartedMessageInProgress')
                 renderGameInProgress();
                 return; //exit out of this code block
             }
             //START the game
             renderGameStartedMessage();
             gameStarted = true;
+
+console.log('L144: setting game started in DB')
             database.ref("/gameData/gameStarted").set(gameStarted);
 
         } else if (numPlayers === 1 && gameStarted) {
-            //A player has left the game
-            //inform remaining player
-            gameStarted = false;
-            database.ref("/gameData/gameStarted").set(gameStarted);
-            //set the remaining users playerNumber back to -1;
-            removePlayer();
 
-            opponentRemoved();
 
         }
 
@@ -164,6 +152,60 @@ playersRef.orderByKey().on("value", function(snapshot) {
     function(errorObject) {
         console.log("The read failed: " + errorObject.code);
     });
+
+// ------------------------------------
+// Game Data - Changes
+// ------------------------------------
+var gameDataRef = database.ref("/gameData");
+
+gameDataRef.on("value", function(snapshot) {
+        console.log('--->change to value of gameData object');
+
+        for (var key in snapshot.val()) {
+            console.log("snapshot key" + key);
+            gameStarted = snapshot.val().gameStarted;
+            console.log('gameStarted from DB', gameStarted)
+        }
+
+        if (playerNumber === 1 && gameStarted) {
+            console.log("setting player1 choices");
+            $("#player1-choices").html(playerOneButtons);
+
+        }
+
+    },
+    function(errorObject) {
+        console.log("The read failed: " + errorObject.code);
+    });
+
+
+
+var turnRef = database.ref("/gameData/turn");
+turnRef.on("value", function(snapshot) {
+
+
+     if (snapshot.exists()) {
+
+     };
+
+    console.log('--->change to value of turn object');
+    for (var key in snapshot.val()) {
+            console.log("turn snapshot key" + key);
+            turn = snapshot.val();
+            console.log('turn: ', turn)
+        }
+
+
+},
+    function(errorObject) {
+        console.log("The read failed: " + errorObject.code);
+    });
+
+
+
+// ------------------------------------
+// on Click Functions
+// ------------------------------------
 
 
 // This function handles events where a player submits there name
@@ -197,12 +239,25 @@ $("#player-start").on("click", function(event) {
     }
 });
 
+//listener for player Rock Paper or Scissors button click
+$(document).on("click", ".player1-choice", function(event) {
+    //get the value of the button clicked
+    var playerOneChoice = $(this).attr("data-choice")
+    console.log("Player 1 >--" + playerOneChoice + "<--");
+
+    //save the choice to the database
+    database.ref("/players/" + playerID + "/choice").set(playerOneChoice);
+    turn = turn + 1;
+    database.ref("/gameData/turn").set(turn);
+    //don't display the buttons any longer
+    $("#player1-choices").hide();
+});
+
 
 
 // ------------------------------------
 // Helper Functions
 // ------------------------------------
-
 
 
 function addPlayer(playerName) {
@@ -231,31 +286,45 @@ function opponentRemoved() {
     console.log('L194 - opponentRemoved()')
     $("#message1").text("game had to be restarted, player left");
 
-
     console.log('L205: removing remaining player??');
     database.ref("players/").remove(); // remove the remaining player from the players database
     $("#name-form").show();
+    //hide the player names    
     $("#player1").empty();
     $("#player2").empty();
 }
 
 
 
-function restartGame() {
-    $("#message1").text("Enter your name to start, then wait for an opponent");
+function restartGame(opponentLeft) {
+    //hide messages and empty html elements from user screen
+
+    if (opponentLeft) {
+        $("#message1").text("game had to be restarted, player left");
+    }
+    else {
+        $("#message1").text("Enter your name to start, then wait for an opponent");
+    }
+    
     $("#name-form").show();
     $("#player1").empty;
     $("#player2").empty;
+    $("#name-form").show();
+
+    //clear the active player ID's from the gameData object
+    database.ref("/gameData/playerOneID").set(null);
+    database.ref("/gameData/playerTwoID").set(null);
+
+    //set game started to false in DB
+    gameStarted = false;
+    database.ref("/gameData/gameStarted").set(gameStarted);
+
+    //set the turn back to 0
+    turn = 0;
+    database.ref("/gameData/turn").set(turn);
+
 }
 
-// function increaseNumPlayers() {
-//     //increase the local variable by one
-//     numPlayers++;
-//     //update the database variable
-//     gameDataRef.set({
-//         numPlayers: numPlayers
-//     });
-// }
 
 // Rendering Functions
 // ------------------------------------
@@ -278,6 +347,9 @@ function hideWaitingMessage() {
 function renderGameInProgress() {
     $("#message1").text("Game in Progress. You can wait until someone leaves if you like..");
     $("#waiting").show();
+    $("#name-form").hide();
+    $("#player1").empty;
+    $("#player2").empty;
 }
 
 
