@@ -10,32 +10,7 @@ var config = {
 firebase.initializeApp(config);
 var database = firebase.database();
 
-// ------------------------------------
-// CONNECTIONS
-// ------------------------------------
 
-var connectionsRef = database.ref("/connections");
-var connectedRef = database.ref(".info/connected");
-
-// When the client's connection state changes...
-connectedRef.on("value", function(snap) {
-
-    if (snap.val()) {
-        // Add user to the connections list.
-        var connectionsList = connectionsRef.push(true);
-        // Remove user from the connection list when they disconnect.
-        //https://firebase.google.com/docs/reference/js/firebase.database.OnDisconnect
-        connectionsList.onDisconnect().remove();
-        // gameData.onDisconnect().set(1);
-    }
-});
-
-// When first loaded or when the connections list changes...
-connectionsRef.on("value", function(snap) {
-    // Display the viewer count in the html.
-    $("#watchers").text(snap.numChildren());
-
-});
 
 // ------------------------------------
 // Initial Values
@@ -197,7 +172,7 @@ playersRef.orderByKey().on("value", function(snapshot) {
                     else if (turn === 2) {
                         var i = 0;
 
-                        //apologies for the shit code below, I couldn't figure out how to get the second value easily
+                        //apologies again for the shit code below, I couldn't figure out how to get the second value easily
                         for (var key in snapshot.val()) {
                             //console.log("snapshot key" + key);
                             i++;
@@ -209,10 +184,7 @@ playersRef.orderByKey().on("value", function(snapshot) {
                         }
                     }
                     else if (turn === 3) {
-                        debugger;
-                        wins = snapshot.val()[key].wins;
-                        losses = snapshot.val()[key].losses;
-                        ties = snapshot.val()[key].ties;
+
 
                     }
 
@@ -489,8 +461,6 @@ function calculateResult() {
         $("#losses").text(secondPlayerWin);
         $("#ties").text(ties);
 
-        hideWaitingMessage();
-
     }
     else if (playerNumber === 2 ) {
 
@@ -505,8 +475,9 @@ function calculateResult() {
         $("#losses").text(firstPlayerWin);
         $("#ties").text(ties);
 
-        hideWaitingMessage();
     }
+
+       hideWaitingMessage();
 
 
 }
@@ -549,117 +520,3 @@ function renderGameInProgress() {
     $("#player1").empty;
     $("#player2").empty;
 }
-
-
-
-
-
-
-//CHAT DATABASE STRUCTURE
-// https://firebase.google.com/docs/database/web/structure-data
-// {
-//   // Chats contains only meta info about each conversation
-//   // stored under the chats's unique ID
-//   "chats": {
-//     "one": {
-//       "title": "Historical Tech Pioneers",
-//       "lastMessage": "ghopper: Relay malfunction found. Cause: moth.",
-//       "timestamp": 1459361875666
-//     },
-//     "two": { ... },
-//     "three": { ... }
-//   },
-
-//   // Conversation members are easily accessible
-//   // and stored by chat conversation ID
-//   "members": {
-//     // we'll talk about indices like this below
-//     "one": {
-//       "ghopper": true,
-//       "alovelace": true,
-//       "eclarke": true
-//     },
-//     "two": { ... },
-//     "three": { ... }
-//   },
-
-//   // Messages are separate from data we may want to iterate quickly
-//   // but still easily paginated and queried, and organized by chat
-//   // conversation ID
-//   "messages": {
-//     "one": {
-//       "m1": {
-//         "name": "eclarke",
-//         "message": "The relay seems to be malfunctioning.",
-//         "timestamp": 1459361875337
-//       },
-//       "m2": { ... },
-//       "m3": { ... }
-//     },
-//     "two": { ... },
-//     "three": { ... }
-//   }
-// }
-
-
-
-// OLD RPS game below
-// var message = document.getElementById("message");
-// var winsText = document.getElementById("wins");
-// var lossesText = document.getElementById("losses");
-// var tiesText = document.getElementById("ties");
-// var userIcon = document.getElementById("user-icon");
-// var compIcon = document.getElementById("comp-icon");
-// var rps = ['r', 'p', 's'];
-// var userChoice;
-// var compChoice;
-// var wins = 0;
-// var losses = 0;
-// var ties = 0;
-// document.onkeyup = function(event)  {
-
-//   userChoice = event.key;
-//   compChoice = rps[Math.floor(Math.random() * 3)]; 
-//   console.log("user " + userChoice + " comp " + compChoice);
-//   if(userChoice == 'r' || userChoice == 'p' || userChoice == 's') {
-//     message.textContent = "You pressed " + userChoice;
-//     userIcon.innerHTML = "<img src='assets/images/" + userChoice + ".png' height='200px' width='200px'>";
-//     compIcon.innerHTML = "<img src='assets/images/" + compChoice + ".png' height='200px' width='200px'>";
-//     if(userChoice == compChoice) {
-//       ties++;
-//     }
-//     else if(userChoice == 'r') {
-//       if(compChoice == 's') {
-//         wins++;
-//       }
-//       else {
-//         losses++;
-//       }
-//     }
-//     else if(userChoice == 'p') {
-//       if(compChoice == 'r') {
-//         wins++;
-//       }
-//       else {
-//         losses++;
-//       }
-//     }
-//     else if(userChoice == 's') {
-//       if(compChoice == 'p') {
-//         wins++;
-//       }
-//       else {
-//         losses++;
-//       }
-//     }
-//   }
-//   else {
-//     message.textContent = "Invalid key";
-//   }
-//       winsText.textContent = wins;
-//       lossesText.textContent = losses;
-//       tiesText.textContent = ties;
-//       console.log("wins " + wins);
-//       console.log("losses " + losses);
-//       console.log("ties " + ties);
-// }
