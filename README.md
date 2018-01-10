@@ -1,7 +1,3 @@
-# RPS-Firebase
-Rock Paper Scissors multiplayer using firebase
-
-
 # Rock Paper Scissors Game
 A Multiplayer Rock Paper Scissors game built using Firebase and jQuery
 
